@@ -82,6 +82,22 @@ Hermes 按会话键跟踪正在运行的 agent。
 
 本指南将引导你完成完整的设置流程——从在 Discord 开发者门户创建机器人到发送第一条消息。
 
+### Discord Gateway WebSocket 健康
+
+Discord REST 与 Gateway WebSocket 是独立传输。REST 请求成功不代表机器人仍能接收 Gateway 事件。Hermes 会组合检查 ready 状态、client/socket 关闭状态、socket 是否打开、heartbeat ACK 年龄和有限 heartbeat latency。
+
+连续异常达到阈值后，适配器只上报一次可重试失败；现有 Gateway 重连器创建新适配器，不会启动第二个无限重连循环。
+
+```yaml
+discord:
+  websocket_liveness_interval_seconds: 15
+  websocket_liveness_failure_threshold: 2
+  websocket_heartbeat_ack_max_age_seconds: 60
+  websocket_max_latency_seconds: 30
+```
+
+旧的 `liveness_interval_seconds` / `liveness_failure_threshold` 仅作为迁移别名保留，不再表示 REST probe。
+
 ## 第一步：创建 Discord 应用
 
 1. 前往 [Discord 开发者门户](https://discord.com/developers/applications) 并使用你的 Discord 账号登录。
@@ -114,7 +130,7 @@ Hermes 按会话键跟踪正在运行的 agent。
 在 **Bot** 页面，向下滚动到 **Privileged Gateway Intents**。你会看到三个开关：
 
 | Intent | 用途 | 是否必需？ |
-|--------|---------|-----------| 
+|--------|---------|-----------|
 | **Presence Intent** | 查看用户在线/离线状态 | 可选 |
 | **Server Members Intent** | 访问成员列表、解析用户名 | **必需** |
 | **Message Content Intent** | 读取消息的文本内容 | **必需** |
@@ -170,7 +186,7 @@ Token 只显示一次。如果丢失，你需要重置并生成新的 token。�
 你可以使用以下格式直接构建邀请 URL：
 
 ```
-https://discord.com/oauth2/authorize?client_id=YOUR_APP_ID&scope=bot+applications.commands&permissions=274878286912
+https://discord.com/oauth2/authorize?client_id=YOUR_APP_ID&scope=bot+applications.commands&permissions=309237763136
 ```
 
 将 `YOUR_APP_ID` 替换为第一步中的 Application ID。
@@ -188,6 +204,7 @@ https://discord.com/oauth2/authorize?client_id=YOUR_APP_ID&scope=bot+application
 ### 推荐的附加权限
 
 - **Send Messages in Threads** — 在线程对话中响应
+- **Create Public Threads** - create threads
 - **Add Reactions** — 对消息添加反应以示确认
 
 ### 权限整数
@@ -195,7 +212,7 @@ https://discord.com/oauth2/authorize?client_id=YOUR_APP_ID&scope=bot+application
 | 级别 | 权限整数 | 包含内容 |
 |-------|-------------------|-----------------|
 | 最低 | `117760` | View Channels、Send Messages、Read Message History、Attach Files |
-| 推荐 | `274878286912` | 以上所有权限，加上 Embed Links、Send Messages in Threads、Add Reactions |
+| 推荐 | `309237763136` | 以上所有权限，加上 Embed Links、Send Messages in Threads、Add Reactions, Create Public Threads |
 
 ## 第六步：邀请到你的服务器
 
